@@ -12,7 +12,7 @@ Sweetie is a prototype smartwatch application for people with diabetes. The goal
 
 ## Tech Stack
 - Vanilla HTML/CSS/JavaScript: No frameworks, no build tools
-- No server required: Open index.html directly in browser
+- No server required: Open index.html from root folder directly in browser
 - Google Fonts: Roboto Flex for typography
 - Data: Mock/simulated data only (no backend)
 
@@ -131,6 +131,7 @@ Examples:
 ## Folder Structure
 ```
 sweetie/
+├── index.html          # entry point (root, links to src/)
 ├── design/
 │   └── screens/
 │       ├── home-sugar-context-1.png
@@ -139,11 +140,19 @@ sweetie/
 │       ├── home-sugar-context-4.png
 │       └── home-sugar-context-5.png
 ├── docs/
-│   └── PROJECT-BRIEF.md
-│   └── STACK.md
+│   ├── PROJECT-BRIEF.md
+│   ├── STACK.md
 │   └── FIGMASTYLES.css
 └── src/
-    └── (Claude Code builds here)
+    ├── assets/         # icons, images
+    ├── styles/
+    │   ├── variables.css
+    │   └── main.css
+    └── js/
+        ├── app.js
+        ├── utils/
+        ├── components/
+        └── screens/
 ```
 
 ## Mock Data

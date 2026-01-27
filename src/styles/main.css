@@ -89,9 +89,46 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Base layer - BELOW blob */
+.nav-circle-base {
+  z-index: 1;
+}
+
+/* Knockout layer - ABOVE blob */
+.nav-circle-knockout {
   z-index: 10;
-  /* Knockout effect - text color changes when blob passes over */
-  mix-blend-mode: difference;
+}
+
+/* Knockout layer - black text visible only inside blob area */
+.nav-knockout {
+  pointer-events: none;
+}
+
+.nav-time-knockout {
+  font-family: 'Roboto Flex', sans-serif;
+  font-size: var(--text-font-size-l);
+  font-weight: 600;
+  fill: #000000;
+  letter-spacing: 0.74px;
+}
+
+.nav-glucose-knockout {
+  font-family: 'Roboto Flex', sans-serif;
+  font-size: var(--text-font-size-l);
+  font-weight: 600;
+  fill: #000000;
+  letter-spacing: 1.5px;
+}
+
+.nav-dot-knockout {
+  fill: #000000;
+}
+
+/* Hide knockout layer when graph is visible (no blob = no knockout) */
+.screen:has(.glucose-graph.visible) .nav-circle-knockout {
+  display: none;
 }
 
 /* Time on top arc */
@@ -147,13 +184,6 @@ body {
   transition:
     transform var(--duration-short) var(--motion-spatial),
     background-color var(--duration-short) var(--motion-effects);
-  /* Knockout effect - button changes when blob passes over */
-  mix-blend-mode: difference;
-}
-
-/* Remove knockout effect when graph is visible */
-.screen:has(.glucose-graph.visible) .add-context-btn {
-  mix-blend-mode: normal;
 }
 
 .add-context-btn:hover {
@@ -245,10 +275,11 @@ body {
 }
 
 /* Glucose blob indicator - positioned and animated via JavaScript */
+/* z-index: 5 = between base text (1) and knockout text (10) */
 .glucose-blob {
   position: absolute;
   transform: translate(-50%, -50%);
-  z-index: 1;
+  z-index: 5;
 }
 
 /* Glucose text color transition */

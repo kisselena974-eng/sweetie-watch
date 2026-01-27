@@ -694,7 +694,43 @@ class GlucoseBlob {
     this.svg.style.left = `${this.posX * 100}%`;
     this.svg.style.top = `${this.posY * 100}%`;
 
+    // Update knockout clip path to follow blob position
+    this.updateKnockoutClip();
+
     this.animationId = requestAnimationFrame(() => this.animate());
+  }
+
+  /**
+   * Update the knockout clip path to follow blob shape and position
+   * This enables the dual-layer text knockout effect (AAA contrast)
+   */
+  updateKnockoutClip() {
+    const clipPath = document.getElementById('blobClipPath');
+    if (!clipPath) return;
+
+    // Get the current blob path data
+    const pathData = this.path.getAttribute('d');
+    if (!pathData) return;
+
+    // Set the same path shape
+    clipPath.setAttribute('d', pathData);
+
+    // Calculate transform to position the path correctly
+    // Blob path is in 0-100 viewBox, centered at (50, 50)
+    // Nav-circle is 0-252 viewBox
+    //
+    // Transform order (right to left):
+    // 1. translate(-50, -50) - move blob center to origin
+    // 2. scale(s) - scale to display size
+    // 3. translate(tx, ty) - move to blob position in nav-circle coords
+
+    const tx = this.posX * 252;
+    const ty = this.posY * 252;
+    const scale = (this.options.baseSize * this.currentScale) / 100;
+
+    clipPath.setAttribute('transform',
+      `translate(${tx}, ${ty}) scale(${scale}) translate(-50, -50)`
+    );
   }
 
   /**

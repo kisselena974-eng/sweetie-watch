@@ -90,7 +90,8 @@ function navigateTo(screenName, direction = 'up') {
  * Update navigation dots to reflect current screen
  */
 function updateNavDots(index) {
-  const navDots = document.querySelectorAll('.nav-dot');
+  // Update base layer dots
+  const navDots = document.querySelectorAll('.nav-circle-base .nav-dot');
   navDots.forEach((dot, i) => {
     if (i === index) {
       dot.classList.add('active');
@@ -99,6 +100,12 @@ function updateNavDots(index) {
       dot.classList.remove('active');
       dot.setAttribute('r', '3');
     }
+  });
+
+  // Update knockout layer dots (for AAA contrast knockout effect)
+  const knockoutDots = document.querySelectorAll('.nav-circle-knockout .nav-dot-knockout');
+  knockoutDots.forEach((dot, i) => {
+    dot.setAttribute('r', i === index ? '3.5' : '3');
   });
 }
 
@@ -191,7 +198,7 @@ function initHomeScreen() {
   // Initialize the glucose blob
   if (homeScreen) {
     // Get initial glucose from the display (parse from text)
-    const glucoseText = document.querySelector('.nav-glucose textPath');
+    const glucoseText = document.querySelector('.nav-circle-base .nav-glucose textPath');
     const initialGlucose = glucoseText
       ? parseFloat(glucoseText.textContent.replace(',', '.'))
       : 6.5;
@@ -239,8 +246,9 @@ function initHomeScreen() {
  * Update glucose text and arrow color
  */
 function updateGlucoseTextColor(color) {
-  const glucoseText = document.querySelector('.nav-glucose');
-  const glucoseArrow = document.querySelector('.nav-arrow path');
+  // Update base layer
+  const glucoseText = document.querySelector('.nav-circle-base .nav-glucose');
+  const glucoseArrow = document.querySelector('.nav-circle-base .nav-arrow path');
 
   if (glucoseText) {
     glucoseText.style.fill = color;
@@ -265,11 +273,19 @@ function setGlucoseValue(value) {
     glucoseBlob.setGlucose(value);
   }
 
-  // Update the displayed value
-  const glucoseText = document.querySelector('.nav-glucose textPath');
+  // Format with comma for European style
+  const formattedValue = value.toFixed(1).replace('.', ',');
+
+  // Update the displayed value (base layer)
+  const glucoseText = document.querySelector('.nav-circle-base .nav-glucose textPath');
   if (glucoseText) {
-    // Format with comma for European style
-    glucoseText.textContent = value.toFixed(1).replace('.', ',');
+    glucoseText.textContent = formattedValue;
+  }
+
+  // Update knockout layer glucose text (for AAA contrast knockout effect)
+  const glucoseTextKnockout = document.querySelector('.nav-circle-knockout .nav-glucose-knockout textPath');
+  if (glucoseTextKnockout) {
+    glucoseTextKnockout.textContent = formattedValue;
   }
 
   // Update arrow position based on text width
@@ -280,8 +296,9 @@ function setGlucoseValue(value) {
  * Update arrow position to maintain consistent spacing from glucose text
  */
 function updateArrowPosition() {
-  const glucoseTextElement = document.querySelector('.nav-glucose');
-  const arrow = document.querySelector('.nav-arrow');
+  const glucoseTextElement = document.querySelector('.nav-circle-base .nav-glucose');
+  const arrow = document.querySelector('.nav-circle-base .nav-arrow');
+  const arrowKnockout = document.querySelector('.nav-circle-knockout .nav-arrow-knockout');
 
   if (!glucoseTextElement || !arrow) return;
 
@@ -300,7 +317,14 @@ function updateArrowPosition() {
   const arrowCenterX = 6.5;
   const arrowCenterY = 6.5;
   const rotation = currentTrendAngle;
-  arrow.setAttribute('transform', `translate(${arrowX}, ${arrowY}) rotate(${rotation}, ${arrowCenterX}, ${arrowCenterY})`);
+  const transform = `translate(${arrowX}, ${arrowY}) rotate(${rotation}, ${arrowCenterX}, ${arrowCenterY})`;
+
+  arrow.setAttribute('transform', transform);
+
+  // Update knockout layer arrow position to match
+  if (arrowKnockout) {
+    arrowKnockout.setAttribute('transform', transform);
+  }
 }
 
 /**
@@ -484,7 +508,7 @@ window.resetToHomeView = resetToHomeView;
  */
 function initGraphToggle() {
   // Click on first nav dot to return to blob when graph is visible
-  const navDots = document.querySelectorAll('.nav-dot');
+  const navDots = document.querySelectorAll('.nav-circle-base .nav-dot');
   const firstDot = navDots[0];
 
   if (firstDot) {

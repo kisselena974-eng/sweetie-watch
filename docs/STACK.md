@@ -8,7 +8,7 @@ Single Page Application (SPA) prototype for a round smartwatch display.
 
 - **Vanilla HTML/CSS/JavaScript** — no frameworks, no build tools
 
-- **No server required** — open index.html directly in browser
+- **No server required** — open index.html from root folder directly in browser
 
 - **Google Fonts** — Roboto Flex for typography
 
@@ -25,35 +25,23 @@ Single Page Application (SPA) prototype for a round smartwatch display.
 ## Project Structure
 
 ```
-
-/design            # Figma screen exports (PNG) for reference
-
-/docs              # all project documentation
-
-  DESIGN.md        # design specifications and screen descriptions
-
-  STACK.md         # this file
-
-  WORKFLOW.md      # how to run and work on the project
-
-/src
-
-  /assets          # images, icons used in the app
-
-  /styles
-
-    variables.css  # design tokens from Figma
-
-    main.css       # main styles
-
-  /js
-
-    app.js         # main application logic
-
-    screens/       # individual screen modules
-
-  index.html       # single entry point
-
+sweetie/
+├── index.html       # entry point (in root, links to src/)
+├── design/          # Figma screen exports (PNG) for reference
+├── docs/            # all project documentation
+│   ├── DESIGN.md    # design specifications and screen descriptions
+│   ├── STACK.md     # this file
+│   └── WORKFLOW.md  # how to run and work on the project
+└── src/
+    ├── assets/      # images, icons used in the app
+    ├── styles/
+    │   ├── variables.css  # design tokens from Figma
+    │   └── main.css       # main styles
+    └── js/
+        ├── app.js         # main application logic
+        ├── utils/         # utility modules (spring physics, etc.)
+        ├── components/    # reusable components (blob, graph, etc.)
+        └── screens/       # individual screen modules
 ```
  
 ## SPA Approach
