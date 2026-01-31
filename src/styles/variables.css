@@ -62,7 +62,17 @@
   /* === DISPLAY === */
   --display-size: 252px;
 
+  /* === WATCH MOCKUP === */
+  /* Scale mockup so outer bezel edge matches --display-size */
+  /* SVG is 400x400, outer bezel is 260px diameter (70 to 330) */
+  /* Scale: 252/260 = 0.969, so 400 * 0.969 = 388px */
+  --mockup-width: 388px;
+  --mockup-height: 388px;
+  /* Fine-tune offsets if circle doesn't align (positive = right/down) */
+  --mockup-offset-x: 0px;
+  --mockup-offset-y: 0px;
+
   /* === BROWSER PRESENTATION (not part of watch UI) === */
-  --browser-bg: #1a1a1a;
+  --browser-bg: #EAEAEA;
   --button-bg-hover: #3c3c3c;
 }

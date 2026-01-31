@@ -6,7 +6,7 @@
 const screens = ['home', 'assistant', 'tracking'];
 let currentScreenIndex = 0;
 let glucoseBlob = null;
-let currentTrendAngle = 45; // Default: rising gradually (45°)
+let currentTrendAngle = 45; // Will be randomized on init
 let contextMenuController = null;
 let insulinInputController = null;
 let medInputController = null;
@@ -162,6 +162,50 @@ function handleDragEnd() {
 }
 
 /**
+ * Handle touch start (mobile)
+ */
+function handleTouchStart(e) {
+  // Don't interfere with button clicks
+  if (e.target.closest('button') || e.target.closest('.context-btn')) {
+    return;
+  }
+  isDragging = true;
+  startY = e.touches[0].clientY;
+  currentY = startY;
+}
+
+/**
+ * Handle touch move (mobile)
+ */
+function handleTouchMove(e) {
+  if (!isDragging) return;
+  currentY = e.touches[0].clientY;
+}
+
+/**
+ * Handle touch end (mobile)
+ */
+function handleTouchEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+
+  // Don't change page if blob is being dragged
+  if (glucoseBlob && glucoseBlob.isDragging) {
+    return;
+  }
+
+  const deltaY = startY - currentY;
+
+  if (Math.abs(deltaY) >= SWIPE_THRESHOLD) {
+    if (deltaY > 0) {
+      nextScreen(); // Swipe up
+    } else {
+      prevScreen(); // Swipe down
+    }
+  }
+}
+
+/**
  * Update all time displays with current time
  */
 function updateTime() {
@@ -194,6 +238,11 @@ function init() {
   display.addEventListener('mouseup', handleDragEnd);
   display.addEventListener('mouseleave', handleDragEnd);
 
+  // Touch events for mobile
+  display.addEventListener('touchstart', handleTouchStart, { passive: false });
+  display.addEventListener('touchmove', handleTouchMove, { passive: false });
+  display.addEventListener('touchend', handleTouchEnd);
+
   // Prevent text selection while dragging
   display.addEventListener('selectstart', e => e.preventDefault());
 
@@ -216,6 +265,21 @@ function initHomeScreen() {
 
   // Initialize the glucose blob
   if (homeScreen) {
+    // Listen for color changes BEFORE creating blob (so initial event is caught)
+    homeScreen.addEventListener('glucoseColorChange', (e) => {
+      const color = e.detail.color;
+      updateGlucoseTextColor(color); // Graph elements
+
+      // Update glucose text and arrow to match blob
+      const glucoseText = document.querySelector('.nav-circle-base .nav-glucose');
+      const arrow = document.querySelector('.nav-circle-base .nav-arrow path');
+      if (glucoseText) glucoseText.style.fill = color;
+      if (arrow) {
+        arrow.style.fill = color;
+        arrow.style.stroke = color;
+      }
+    });
+
     // Get initial glucose from the display (parse from text)
     const glucoseText = document.querySelector('.nav-circle-base .nav-glucose textPath');
     const initialGlucose = glucoseText
@@ -229,26 +293,6 @@ function initHomeScreen() {
 
     // Expose globally for transitions
     window.glucoseBlob = glucoseBlob;
-
-    // Listen for color changes to update graph elements
-    homeScreen.addEventListener('glucoseColorChange', (e) => {
-      updateGlucoseTextColor(e.detail.color);
-    });
-
-    // Set initial colors
-    updateGlucoseTextColor(glucoseBlob.getColor()); // Graph elements (smooth)
-
-    // Set initial discrete color for glucose text and arrow
-    const discreteColor = getColorForGlucose(initialGlucose);
-    const glucoseTextElement = document.querySelector('.nav-circle-base .nav-glucose');
-    const glucoseArrow = document.querySelector('.nav-circle-base .nav-arrow path');
-    if (glucoseTextElement) {
-      glucoseTextElement.style.fill = discreteColor;
-    }
-    if (glucoseArrow) {
-      glucoseArrow.style.fill = discreteColor;
-      glucoseArrow.style.stroke = discreteColor;
-    }
 
     // Set initial arrow position and trend
     updateArrowPosition();
@@ -275,7 +319,6 @@ function initHomeScreen() {
 
 /**
  * Update graph elements color (follows blob's smooth color)
- * Note: Glucose text and arrow use discrete colors set in setGlucoseValue()
  */
 function updateGlucoseTextColor(color) {
   // Update graph elements to match blob color
@@ -327,17 +370,17 @@ function setGlucoseValue(value) {
     glucoseTextKnockout.textContent = formattedValue;
   }
 
-  // Set discrete color for glucose text and arrow (no transition, instant change at thresholds)
-  const discreteColor = getColorForGlucose(value);
+  // Use blob's color for glucose text and arrow (matches blob exactly)
+  const blobColor = glucoseBlob ? glucoseBlob.getColor() : getColorForGlucose(value);
   const glucoseTextElement = document.querySelector('.nav-circle-base .nav-glucose');
   const glucoseArrow = document.querySelector('.nav-circle-base .nav-arrow path');
 
   if (glucoseTextElement) {
-    glucoseTextElement.style.fill = discreteColor;
+    glucoseTextElement.style.fill = blobColor;
   }
   if (glucoseArrow) {
-    glucoseArrow.style.fill = discreteColor;
-    glucoseArrow.style.stroke = discreteColor;
+    glucoseArrow.style.fill = blobColor;
+    glucoseArrow.style.stroke = blobColor;
   }
 
   // Update arrow position based on text width
@@ -634,11 +677,10 @@ function initDebugSlider() {
 
   // Trend arrow button
   const trendArrowBtn = document.querySelector('.trend-arrow-btn');
-  let currentTrendIndex = 1; // Start at 45° (rising gradually)
+  let currentTrendIndex = TREND_ANGLES.indexOf(currentTrendAngle);
+  if (currentTrendIndex === -1) currentTrendIndex = 1;
 
   if (trendArrowBtn) {
-    // Set initial rotation
-    updateTrendArrowButton(trendArrowBtn, currentTrendIndex);
 
     trendArrowBtn.addEventListener('click', () => {
       // Cycle through 5 positions: 0 → 1 → 2 → 3 → 4 → 0
@@ -680,8 +722,45 @@ function updateTrendArrowButton(btn, index) {
   }
 }
 
+/**
+ * Generate random initial glucose and trend values
+ */
+function randomizeInitialValues() {
+  // Random glucose between 3.5 and 11.0
+  const randomGlucose = (Math.random() * 7.5 + 3.5).toFixed(1);
+  const formattedGlucose = randomGlucose.replace('.', ',');
+
+  // Random trend angle from TREND_ANGLES
+  const randomTrendIndex = Math.floor(Math.random() * TREND_ANGLES.length);
+  currentTrendAngle = TREND_ANGLES[randomTrendIndex];
+
+  // Update HTML glucose values
+  const glucoseTextBase = document.querySelector('.nav-circle-base .nav-glucose textPath');
+  const glucoseTextKnockout = document.querySelector('.nav-circle-knockout .nav-glucose-knockout textPath');
+  if (glucoseTextBase) glucoseTextBase.textContent = formattedGlucose;
+  if (glucoseTextKnockout) glucoseTextKnockout.textContent = formattedGlucose;
+
+  // Update debug slider
+  const slider = document.getElementById('glucose-slider');
+  const valueDisplay = document.querySelector('.glucose-value');
+  if (slider) slider.value = randomGlucose;
+  if (valueDisplay) valueDisplay.textContent = formattedGlucose;
+
+  // Update debug slider colors
+  const color = getColorForGlucose(parseFloat(randomGlucose));
+  if (valueDisplay) valueDisplay.style.color = color;
+  document.documentElement.style.setProperty('--slider-thumb-color', color);
+
+  // Update trend arrow button rotation
+  const trendArrowBtn = document.querySelector('.trend-arrow-btn svg');
+  if (trendArrowBtn) {
+    trendArrowBtn.style.transform = `rotate(${currentTrendAngle}deg)`;
+  }
+}
+
 // Start the app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  randomizeInitialValues();
   init();
   initHomeScreen();
   initDebugSlider();
@@ -759,8 +838,27 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Med logged:', e.detail);
   });
 
-  // Generate initial graph with default trend (45° = rising)
+  // Generate initial graph with current random trend
   setTimeout(() => {
     generateGraphForTrend(currentTrendAngle);
+
+    // Update ALL colors to match blob
+    if (glucoseBlob) {
+      const color = glucoseBlob.getColor();
+
+      // Debug slider
+      const valueDisplay = document.querySelector('.glucose-value');
+      if (valueDisplay) valueDisplay.style.color = color;
+      document.documentElement.style.setProperty('--slider-thumb-color', color);
+
+      // Glucose text and arrow on watch face
+      const glucoseText = document.querySelector('.nav-circle-base .nav-glucose');
+      const arrow = document.querySelector('.nav-circle-base .nav-arrow path');
+      if (glucoseText) glucoseText.style.fill = color;
+      if (arrow) {
+        arrow.style.fill = color;
+        arrow.style.stroke = color;
+      }
+    }
   }, 100);
 });

@@ -135,6 +135,11 @@ class GlucoseBlob {
     // Create SVG element
     this.createSVG();
 
+    // Dispatch initial color change event
+    this.container.dispatchEvent(new CustomEvent('glucoseColorChange', {
+      detail: { color: this.currentColor, glucose: this.glucoseValue }
+    }));
+
     // Start animation
     this.animate();
   }
@@ -571,45 +576,35 @@ class GlucoseBlob {
 
   /**
    * Get color based on glucose level with smooth transitions
-   * Uses blending for warning zones to create smooth color gradients
+   * Blending happens: 9.5-10 (yellow→red) and 4.0-4.5 (yellow→red)
    */
   getColorForGlucose(glucose) {
-    // Pure danger zones
-    if (glucose < GLUCOSE_RANGES.DANGER_LOW - 0.3 || glucose > GLUCOSE_RANGES.DANGER_HIGH + 0.3) {
+    // Danger zones (pure red)
+    if (glucose <= GLUCOSE_RANGES.DANGER_LOW || glucose >= GLUCOSE_RANGES.DANGER_HIGH) {
       return COLORS.DANGER;
     }
 
-    // Pure safe zone
-    if (glucose > GLUCOSE_RANGES.WARNING_LOW + 0.3 && glucose < GLUCOSE_RANGES.WARNING_HIGH - 0.3) {
+    // Safe zone (pure green)
+    if (glucose >= GLUCOSE_RANGES.WARNING_LOW && glucose <= GLUCOSE_RANGES.WARNING_HIGH) {
       return COLORS.SAFE;
     }
 
-    // High warning zone with blending (9.0 - 10.0)
-    if (glucose >= GLUCOSE_RANGES.WARNING_HIGH - 0.3 && glucose <= GLUCOSE_RANGES.DANGER_HIGH + 0.3) {
-      if (glucose > GLUCOSE_RANGES.DANGER_HIGH) {
-        // Blend warning to danger
-        const t = Math.min(1, (glucose - GLUCOSE_RANGES.DANGER_HIGH) / 0.5);
+    // High warning zone (9.0 - 10.0)
+    if (glucose > GLUCOSE_RANGES.WARNING_HIGH && glucose < GLUCOSE_RANGES.DANGER_HIGH) {
+      if (glucose >= 9.5) {
+        // Blend from yellow to red (9.5 to 10)
+        const t = (glucose - 9.5) / 0.5;
         return this.blendColors(COLORS.WARNING, COLORS.DANGER, t);
-      } else if (glucose < GLUCOSE_RANGES.WARNING_HIGH) {
-        // Blend safe to warning
-        const t = Math.min(1, (GLUCOSE_RANGES.WARNING_HIGH - glucose) / 0.5);
-        return this.blendColors(COLORS.WARNING, COLORS.SAFE, t);
       }
+      // Pure yellow (9.0 to 9.5)
       return COLORS.WARNING;
     }
 
-    // Low warning zone with blending (4.0 - 4.5)
-    if (glucose >= GLUCOSE_RANGES.DANGER_LOW - 0.3 && glucose <= GLUCOSE_RANGES.WARNING_LOW + 0.3) {
-      if (glucose < GLUCOSE_RANGES.DANGER_LOW) {
-        // Blend warning to danger
-        const t = Math.min(1, (GLUCOSE_RANGES.DANGER_LOW - glucose) / 0.5);
-        return this.blendColors(COLORS.WARNING, COLORS.DANGER, t);
-      } else if (glucose > GLUCOSE_RANGES.WARNING_LOW) {
-        // Blend safe to warning
-        const t = Math.min(1, (glucose - GLUCOSE_RANGES.WARNING_LOW) / 0.5);
-        return this.blendColors(COLORS.WARNING, COLORS.SAFE, t);
-      }
-      return COLORS.WARNING;
+    // Low warning zone (4.0 - 4.5) - blend throughout
+    if (glucose > GLUCOSE_RANGES.DANGER_LOW && glucose < GLUCOSE_RANGES.WARNING_LOW) {
+      // Blend from yellow (at 4.5) to red (at 4.0)
+      const t = (GLUCOSE_RANGES.WARNING_LOW - glucose) / 0.5;
+      return this.blendColors(COLORS.WARNING, COLORS.DANGER, t);
     }
 
     return COLORS.SAFE;

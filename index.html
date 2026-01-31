@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=252, height=252, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sweetie App by Elena</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +28,9 @@
   </div>
 
   <div class="watch-container">
+    <!-- Watch hardware mockup with glow (decorative) -->
+    <img class="watch-mockup" src="src/assets/WatchMocks.svg" alt="" aria-hidden="true">
+
     <div class="watch-display">
       <!-- Page 1: Glucose (Home) -->
       <div class="screen active" data-screen="home">
@@ -262,6 +265,77 @@
         </text>
       </svg>
     </div>
+
+    <!-- Glass glow overlay (radial highlights on top of display) -->
+    <svg class="watch-glow" viewBox="0 0 400 400">
+      <defs>
+        <clipPath id="glowClip">
+          <circle cx="200" cy="200" r="130"/>
+        </clipPath>
+        <!-- Edge glow filters -->
+        <filter id="glowEdge1" x="55.1" y="55.1" width="289.8" height="289.8" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="4.95"/>
+        </filter>
+        <filter id="glowEdge2" x="61" y="61" width="278" height="278" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="2"/>
+        </filter>
+        <!-- Highlight filters -->
+        <filter id="glowFilter1" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.8"/>
+        </filter>
+        <filter id="glowFilter2" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="8.1"/>
+        </filter>
+        <filter id="glowFilter3" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.33"/>
+        </filter>
+        <!-- Edge glow gradients (from transparent to gray at edge) -->
+        <radialGradient id="glowEdgeGrad1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(200 200) rotate(-158.58) scale(139.646)">
+          <stop stop-opacity="0"/>
+          <stop offset="0.86" stop-opacity="0"/>
+          <stop offset="1" stop-color="#838383"/>
+        </radialGradient>
+        <radialGradient id="glowEdgeGrad2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(211 200) rotate(-172.153) scale(157.475)">
+          <stop stop-opacity="0"/>
+          <stop offset="0.75" stop-opacity="0"/>
+          <stop offset="1" stop-color="#9D9D9D"/>
+        </radialGradient>
+        <!-- Highlight gradients -->
+        <radialGradient id="glowGrad1" cx="0" cy="0" r="1" gradientTransform="matrix(-262.742 336.979 -121.19 -75.1109 466.943 71.5143)" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white"/>
+          <stop offset="1" stop-color="white" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowGrad2" cx="0" cy="0" r="1" gradientTransform="matrix(-244.042 182.369 -73.6935 -121.64 375.79 185.228)" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white"/>
+          <stop offset="1" stop-color="white" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowGrad3" cx="0" cy="0" r="1" gradientTransform="matrix(106.501 97.9989 -78.1213 88.0462 72.0001 65.9999)" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white"/>
+          <stop offset="1" stop-color="white" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <g clip-path="url(#glowClip)">
+        <!-- Edge glow circles -->
+        <g opacity="0.6" filter="url(#glowEdge1)">
+          <circle cx="200" cy="200" r="135" fill="url(#glowEdgeGrad1)"/>
+        </g>
+        <g opacity="0.6" filter="url(#glowEdge2)">
+          <circle cx="200" cy="200" r="135" fill="url(#glowEdgeGrad2)"/>
+        </g>
+        <!-- Bottom-right highlight -->
+        <g opacity="0.3" filter="url(#glowFilter1)">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M207.994 300.407C199.564 304.048 199.498 316.598 208.681 316.598C271.265 316.598 322 268.695 322 209.604C322 185.476 313.541 163.214 299.272 145.316C293.602 138.205 283.646 145.133 285.233 154.088C286.606 161.833 287.322 169.813 287.322 177.964C287.322 233.035 254.604 280.278 207.994 300.407Z" fill="url(#glowGrad1)"/>
+        </g>
+        <!-- Right edge highlight -->
+        <g opacity="0.2" filter="url(#glowFilter2)">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M214.354 305.845C211.521 306.951 211.959 311 215 311C270.228 311 315 261.626 315 200.72C315 188.949 313.328 177.609 310.231 166.973C309.267 163.661 304.736 164.81 304.82 168.258C304.849 169.464 304.864 170.673 304.864 171.887C304.864 232.993 267.29 285.175 214.354 305.845Z" fill="url(#glowGrad2)"/>
+        </g>
+        <!-- Top-left highlight -->
+        <g opacity="0.15" filter="url(#glowFilter3)">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M304.428 127.328C280.908 93.8669 242.008 71.9999 198 71.9999C126.203 71.9999 68 130.203 68 202C68 230.504 77.1735 256.865 92.7292 278.292C82.6967 259.766 77 238.548 77 216C77 143.651 135.651 85.0003 208 85.0003C246.148 85.0003 280.487 101.306 304.428 127.328Z" fill="url(#glowGrad3)"/>
+        </g>
+      </g>
+    </svg>
   </div>
 
   <script src="src/js/utils/spring.js"></script>

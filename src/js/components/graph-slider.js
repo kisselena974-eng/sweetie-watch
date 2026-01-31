@@ -337,14 +337,15 @@ class GraphSlider {
 
   /**
    * Get color for a Y coordinate with smooth transitions
-   * Uses warning (yellow) zone between safe and danger
+   * Blending: 9.5-10 (y 96-101) and 4.0-4.5 (y 151-156)
    *
    * Y coordinates:
-   * - y < 96: Danger high (glucose > 10)
-   * - y 96-106: Warning high (glucose 9-10)
+   * - y <= 96: Danger high (glucose >= 10)
+   * - y 96-101: Blend yellow→red (glucose 9.5-10)
+   * - y 101-106: Warning high, pure yellow (glucose 9-9.5)
    * - y 106-151: Safe (glucose 4.5-9)
-   * - y 151-156: Warning low (glucose 4-4.5)
-   * - y > 156: Danger low (glucose < 4)
+   * - y 151-156: Blend yellow→red (glucose 4-4.5)
+   * - y >= 156: Danger low (glucose <= 4)
    */
   getColorForY(y) {
     const COLORS = {
@@ -355,54 +356,39 @@ class GraphSlider {
 
     // Y boundaries for zones
     const DANGER_HIGH_Y = 96;    // glucose = 10
+    const BLEND_HIGH_Y = 101;    // glucose = 9.5
     const WARNING_HIGH_Y = 106;  // glucose = 9
     const WARNING_LOW_Y = 151;   // glucose = 4.5
     const DANGER_LOW_Y = 156;    // glucose = 4
 
     // Danger zones (pure red)
-    if (y < DANGER_HIGH_Y - 5 || y > DANGER_LOW_Y + 5) {
+    if (y <= DANGER_HIGH_Y || y >= DANGER_LOW_Y) {
       return COLORS.danger;
     }
 
     // Safe zone (pure green)
-    if (y > WARNING_HIGH_Y + 5 && y < WARNING_LOW_Y - 5) {
+    if (y >= WARNING_HIGH_Y && y <= WARNING_LOW_Y) {
       return COLORS.safe;
     }
 
-    // Warning zones and transitions
-    if (y <= WARNING_HIGH_Y + 5 && y >= DANGER_HIGH_Y - 5) {
-      // Upper warning zone: blend between danger, warning, and safe
-      if (y < DANGER_HIGH_Y) {
-        // Transition from danger to warning
-        const t = (DANGER_HIGH_Y - y) / 10;
-        return this.blendColors(COLORS.warning, COLORS.danger, Math.min(1, t));
-      } else if (y > WARNING_HIGH_Y) {
-        // Transition from warning to safe
-        const t = (y - WARNING_HIGH_Y) / 10;
-        return this.blendColors(COLORS.warning, COLORS.safe, Math.min(1, t));
-      } else {
-        // Pure warning zone
-        return COLORS.warning;
+    // High warning zone (y 96-106, glucose 9-10)
+    if (y > DANGER_HIGH_Y && y < WARNING_HIGH_Y) {
+      if (y <= BLEND_HIGH_Y) {
+        // Blend yellow to red (y 96-101, glucose 9.5-10)
+        const t = (BLEND_HIGH_Y - y) / 5;
+        return this.blendColors(COLORS.warning, COLORS.danger, t);
       }
+      // Pure yellow (y 101-106, glucose 9-9.5)
+      return COLORS.warning;
     }
 
-    if (y >= WARNING_LOW_Y - 5 && y <= DANGER_LOW_Y + 5) {
-      // Lower warning zone: blend between safe, warning, and danger
-      if (y < WARNING_LOW_Y) {
-        // Transition from safe to warning
-        const t = (WARNING_LOW_Y - y) / 10;
-        return this.blendColors(COLORS.warning, COLORS.safe, Math.min(1, t));
-      } else if (y > DANGER_LOW_Y) {
-        // Transition from warning to danger
-        const t = (y - DANGER_LOW_Y) / 10;
-        return this.blendColors(COLORS.warning, COLORS.danger, Math.min(1, t));
-      } else {
-        // Pure warning zone
-        return COLORS.warning;
-      }
+    // Low warning zone (y 151-156, glucose 4-4.5) - blend throughout
+    if (y > WARNING_LOW_Y && y < DANGER_LOW_Y) {
+      // Blend yellow to red (as y increases / glucose decreases)
+      const t = (y - WARNING_LOW_Y) / 5;
+      return this.blendColors(COLORS.warning, COLORS.danger, t);
     }
 
-    // Default to safe
     return COLORS.safe;
   }
 
@@ -710,32 +696,30 @@ class GraphSlider {
     const WARNING_LOW_Y = 151;   // glucose = 4.5
     const DANGER_LOW_Y = 156;    // glucose = 4
 
-    // Determine zone and color based on Y position
-    let segmentColor, clipY, clipHeight;
+    // Get blended color based on Y position (matches blob's color logic)
+    const segmentColor = this.getColorForY(y);
+
+    // Determine clip zone based on Y position
+    let clipY, clipHeight;
 
     if (y < DANGER_HIGH_Y) {
       // Danger high zone (glucose > 10)
-      segmentColor = '#FF4444';
       clipY = 0;
       clipHeight = DANGER_HIGH_Y;
     } else if (y < WARNING_HIGH_Y) {
       // Warning high zone (glucose 9-10)
-      segmentColor = '#FFD700';
       clipY = DANGER_HIGH_Y;
       clipHeight = WARNING_HIGH_Y - DANGER_HIGH_Y;
     } else if (y < WARNING_LOW_Y) {
       // Safe zone (glucose 4.5-9)
-      segmentColor = '#7ED321';
       clipY = WARNING_HIGH_Y;
       clipHeight = WARNING_LOW_Y - WARNING_HIGH_Y;
     } else if (y < DANGER_LOW_Y) {
       // Warning low zone (glucose 4-4.5)
-      segmentColor = '#FFD700';
       clipY = WARNING_LOW_Y;
       clipHeight = DANGER_LOW_Y - WARNING_LOW_Y;
     } else {
       // Danger low zone (glucose < 4)
-      segmentColor = '#FF4444';
       clipY = DANGER_LOW_Y;
       clipHeight = 252 - DANGER_LOW_Y;
     }
@@ -812,17 +796,45 @@ class GraphSlider {
   }
 
   /**
-   * Get discrete color for glucose value (no blending, instant change at thresholds)
-   * > 10: red, 10-9: yellow, 9-4.5: green, 4.5-4: yellow, < 4: red
+   * Get color for glucose value with smooth blending at thresholds
+   * Blending happens: 9.5-10 (yellow→red) and 4.0-4.5 (yellow→red)
    */
-  getDiscreteColorForGlucose(glucose) {
-    if (glucose < 4.0 || glucose > 10.0) {
-      return '#FF4444'; // Danger red
+  getColorForGlucose(glucose) {
+    const COLORS = {
+      SAFE: '#7ED321',
+      WARNING: '#FFD700',
+      DANGER: '#FF4444'
+    };
+
+    // Danger zones (pure red)
+    if (glucose <= 4.0 || glucose >= 10.0) {
+      return COLORS.DANGER;
     }
-    if (glucose < 4.5 || glucose > 9.0) {
-      return '#FFD700'; // Warning yellow
+
+    // Safe zone (pure green)
+    if (glucose >= 4.5 && glucose <= 9.0) {
+      return COLORS.SAFE;
     }
-    return '#7ED321'; // Safe green
+
+    // High warning zone (9.0 - 10.0)
+    if (glucose > 9.0 && glucose < 10.0) {
+      if (glucose >= 9.5) {
+        // Blend from yellow to red (9.5 to 10)
+        const t = (glucose - 9.5) / 0.5;
+        return this.blendColors(COLORS.WARNING, COLORS.DANGER, t);
+      }
+      // Pure yellow (9.0 to 9.5)
+      return COLORS.WARNING;
+    }
+
+    // Low warning zone (4.0 - 4.5) - blend throughout
+    if (glucose > 4.0 && glucose < 4.5) {
+      // Blend from yellow (at 4.5) to red (at 4.0)
+      const t = (4.5 - glucose) / 0.5;
+      return this.blendColors(COLORS.WARNING, COLORS.DANGER, t);
+    }
+
+    return COLORS.SAFE;
   }
 
   /**
@@ -834,16 +846,16 @@ class GraphSlider {
     const glucoseTextElement = document.querySelector('.nav-circle-base .nav-glucose');
     const arrow = document.querySelector('.nav-circle-base .nav-arrow');
 
-    // Use discrete colors for glucose text and arrow (no transition)
-    const discreteColor = this.getDiscreteColorForGlucose(glucose);
+    // Use blended colors for glucose text and arrow (matches blob)
+    const color = this.getColorForGlucose(glucose);
 
     if (glucoseTextElement) {
-      glucoseTextElement.style.fill = discreteColor;
+      glucoseTextElement.style.fill = color;
     }
 
     if (glucoseArrow) {
-      glucoseArrow.style.fill = discreteColor;
-      glucoseArrow.style.stroke = discreteColor;
+      glucoseArrow.style.fill = color;
+      glucoseArrow.style.stroke = color;
     }
 
     const displayValue = glucose.toFixed(1).replace('.', ',');
@@ -1002,6 +1014,7 @@ class GraphSlider {
 
     const handleMove = (e) => {
       if (!this.isDragging) return;
+      e.preventDefault(); // Prevent page scroll on mobile
 
       const svgRect = this.svg.getBoundingClientRect();
       const clientX = e.clientX || e.touches?.[0]?.clientX;
@@ -1037,11 +1050,11 @@ class GraphSlider {
     document.addEventListener('mouseup', handleEnd);
 
     // Touch events
-    this.sliderDot.addEventListener('touchstart', handleStart);
+    this.sliderDot.addEventListener('touchstart', handleStart, { passive: false });
     if (this.sliderHitbox) {
-      this.sliderHitbox.addEventListener('touchstart', handleStart);
+      this.sliderHitbox.addEventListener('touchstart', handleStart, { passive: false });
     }
-    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchmove', handleMove, { passive: false });
     document.addEventListener('touchend', handleEnd);
 
     // Click anywhere on graph - animate to that position
